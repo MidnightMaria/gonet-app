@@ -1,0 +1,26 @@
+waitgroup 
+channels 
+mutex 
+
+reviews 
+
+but this time i dont think we dont need channels
+
+make functions for:
+- calculating income
+
+1. There are 4 pcs in Gonet
+2. Customers buy billing from the operator
+3. After that customers can pick any pc they want to use (use math/rand package to generate random number)
+4. The pc that are being use can't be use or pick by other customers (use mutex to do this)
+5. Use delays to add timer to the app
+6. Update the Gonetz income (use mutex as well because we're upadating the same thing concurrently)
+
+Wellcome to Gonet
+
+- Agnes buy 1 hour billing 
+- Agnes is now using pc 03
+- Agnes billing is over 
+- Agnes left pc 03
+
+
