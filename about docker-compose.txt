@@ -9,5 +9,5 @@ Melihat flag / option apa saja yang tersedia jika melakukan docker-compose up
 
 Agar ketika terjadi perubahan file / code, image ikut terupdate atau dibuild ulang. Docker-compose tidak otomatis rebuild image meski terjadi perubahan. Docker-compose hanya mengecek apakah image tersebut sudah ada atau tidak. Jika image sudah ada, maka docker tidak akan rebuild image tersebut.
 > docker-compose up -d --build 
-
+ 
 1.20.47

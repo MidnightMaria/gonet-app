@@ -25,6 +25,7 @@ type Billing struct {
 
 var salary = 0
 var mu sync.Mutex // Mutex for salary updates
+var pcMutex sync.Mutex // Mutex for PC allocation
 
 var users = []User{
 	{username: "nesngenes", billingHour: 0},
@@ -55,21 +56,25 @@ var billing = []Billing{
 	{hour: 5, price: 10000},
 }
 
-func getRandomPC(pcs []PC) PC {
+func getRandomPC(pcs []PC) *PC {
 	rand.Seed(time.Now().UnixNano()) // Seed the random number generator
 
-	randPcNumber := rand.Intn(len(pcs))
-	selectedPC := pcs[randPcNumber]
+	pcMutex.Lock()
+	defer pcMutex.Unlock()
 
-	for selectedPC.isUsed {
-		randPcNumber = rand.Intn(len(pcs))
-		selectedPC = pcs[randPcNumber]
+	for {
+		randPcNumber := rand.Intn(len(pcs))
+		selectedPC := &pcs[randPcNumber]
+
+		selectedPC.mu.Lock()
+		if !selectedPC.isUsed {
+			// Mark the selected PC as used before returning
+			selectedPC.isUsed = true
+			selectedPC.mu.Unlock()
+			return selectedPC
+		}
+		selectedPC.mu.Unlock()
 	}
-
-	// Mark the selected PC as used before returning
-	selectedPC.isUsed = true
-
-	return selectedPC
 }
 
 func buyBilling() (billingHour, billingPrice int) {
@@ -86,31 +91,28 @@ func gonet() int {
 
 	for i := 0; i < len(users); i++ {
 		selectedPC := getRandomPC(pcs)
-		go gonetLogic(users[i], selectedPC, &wg)
+		go gonetLogic(&users[i], selectedPC, &wg)
 	}
 
 	wg.Wait()
 	return salary
 }
 
-func gonetLogic(user User, selectedPC PC, wg *sync.WaitGroup) {
+func gonetLogic(user *User, selectedPC *PC, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	billingHour, billingPrice := buyBilling()
 	user.billingHour += billingHour
 
-	selectedPC.mu.Lock()
-	
 	fmt.Printf("%s buy %d hour billing for %d rupiah \n", user.username, billingHour, billingPrice)
-	fmt.Printf("%s is now using pc %d\n", user.username, selectedPC.pcNumber)	
+	fmt.Printf("%s is now using pc %d\n", user.username, selectedPC.pcNumber)
 
-	playingTime := time.Duration(user.billingHour) + 5 * time.Second
+	playingTime := time.Duration(user.billingHour) * time.Second
+
+	mu.Lock()
 	time.Sleep(playingTime)
-	
-	selectedPC.mu.Unlock()
-	
-	selectedPC.isUsed = false
-	
+	mu.Unlock()
+
 	fmt.Printf("%s billing is over\n", user.username)
 
 	fmt.Printf("%s left pc %d\n", user.username, selectedPC.pcNumber)
@@ -119,10 +121,18 @@ func gonetLogic(user User, selectedPC PC, wg *sync.WaitGroup) {
 	mu.Lock()
 	salary += billingPrice
 	mu.Unlock()
+
+	// Mark the PC as unused after the user leaves
+	selectedPC.mu.Lock()
+	selectedPC.isUsed = false
+	selectedPC.mu.Unlock()
 }
 
 func main() {
 	fmt.Println("......:::::: Welcome to gonet <3 ::::::......")
+
+	// Seed the random number generator
+	rand.Seed(time.Now().UnixNano())
 
 	totalSalary := gonet()
 
